@@ -1,6 +1,7 @@
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import * as schema from "./schema";
+import { poolConfig } from "./pool-config";
 
 export type DB = NodePgDatabase<typeof schema>;
 
@@ -11,13 +12,7 @@ function createPool() {
   if (!connectionString) {
     throw new Error("DATABASE_URL is not set");
   }
-  return new Pool({
-    connectionString,
-    max: Number(process.env.DATABASE_POOL_MAX ?? 5),
-    ssl: connectionString.includes("sslmode=require")
-      ? { rejectUnauthorized: false }
-      : undefined,
-  });
+  return new Pool(poolConfig(connectionString, Number(process.env.DATABASE_POOL_MAX ?? 3)));
 }
 
 // Reuse one pool across hot reloads in development.
