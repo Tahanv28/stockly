@@ -79,8 +79,8 @@ export default async function ItemPage({ params, searchParams }: PageProps<"/app
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-5">
-        <div className="space-y-4 lg:col-span-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+        <div className="min-w-0 space-y-4 lg:col-span-3">
           <Card className="p-4 md:p-5">
             <QuantityControl itemId={item.id} quantity={item.quantity} unit={item.unit} low={low} />
           </Card>
@@ -114,7 +114,7 @@ export default async function ItemPage({ params, searchParams }: PageProps<"/app
           </Card>
         </div>
 
-        <div className="space-y-4 lg:col-span-2">
+        <div className="min-w-0 space-y-4 lg:col-span-2">
           <Card className="p-4 md:p-5">
             <h2 className="mb-3 text-sm font-medium text-neutral-500">Details</h2>
             <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">

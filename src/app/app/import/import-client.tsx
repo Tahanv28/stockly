@@ -105,8 +105,8 @@ export function ImportClient() {
             </div>
             <div className="grid gap-2 sm:grid-cols-2">
               {parsed.headers.map((h, i) => (
-                <div key={i} className="flex items-center gap-2 rounded-lg bg-neutral-50 p-2">
-                  <div className="min-w-0 flex-1">
+                <div key={i} className="flex flex-col gap-2 rounded-lg bg-neutral-50 p-2 sm:flex-row sm:items-center">
+                  <div className="min-w-0 sm:flex-1">
                     <div className="truncate text-sm font-medium">{h || `Column ${i + 1}`}</div>
                     <div className="truncate text-xs text-neutral-500">e.g. {parsed.data.find((r) => r[i])?.[i] ?? "—"}</div>
                   </div>
@@ -114,7 +114,7 @@ export function ImportClient() {
                     aria-label={`Import ${h} as`}
                     value={mapping[i]}
                     onChange={(e) => setMapping((m) => m.map((t, j) => (j === i ? (e.target.value as Target) : t)))}
-                    className="w-44"
+                    className="w-full sm:w-44 sm:shrink-0"
                   >
                     {Object.entries(TARGETS).map(([value, label]) => (
                       <option key={value} value={value}>
@@ -132,7 +132,9 @@ export function ImportClient() {
               <div className="border-b border-neutral-100 px-4 py-3 text-sm">
                 <span className="font-semibold">{preview.rows.length} items ready</span>
                 {preview.errors.length > 0 && (
-                  <span className="text-amber-700"> · {preview.errors.length} rows will be skipped</span>
+                  <span className="text-amber-700">
+                    {" "}· {preview.errors.length} row{preview.errors.length === 1 ? "" : "s"} will be skipped
+                  </span>
                 )}
               </div>
               <div className="overflow-x-auto">

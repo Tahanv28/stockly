@@ -45,13 +45,13 @@ export function QuantityControl({
         </div>
         <div className="flex gap-2">
           <form action={() => action(quick("remove"))}>
-            <Button type="submit" variant="secondary" size="lg" aria-label="Remove one" disabled={pending} className="w-12 px-0">
-              <IconMinus />
+            <Button type="submit" variant="secondary" size="icon" aria-label="Remove one" disabled={pending}>
+              <IconMinus width={24} height={24} strokeWidth={2.4} />
             </Button>
           </form>
           <form action={() => action(quick("add"))}>
-            <Button type="submit" size="lg" aria-label="Add one" disabled={pending} className="w-12 px-0">
-              <IconPlus />
+            <Button type="submit" size="icon" aria-label="Add one" disabled={pending}>
+              <IconPlus width={24} height={24} strokeWidth={2.4} />
             </Button>
           </form>
         </div>
@@ -79,9 +79,9 @@ export function QuantityControl({
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             aria-label="Amount"
-            className="w-24"
+            className="w-20 shrink-0 text-center"
           />
-          <Input name="note" placeholder="Reason (optional), e.g. Job #214" className="flex-1" />
+          <Input name="note" placeholder="Reason (optional), e.g. Job #214" className="min-w-0 flex-1" />
         </div>
         <Button type="submit" className="w-full" disabled={pending}>
           {pending ? "Saving…" : mode === "remove" ? "Take out" : mode === "add" ? "Put in" : "Set count"}

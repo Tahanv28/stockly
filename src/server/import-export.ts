@@ -6,6 +6,8 @@ import type { Ctx } from "./auth";
 import { ensureFolderPath, InventoryError } from "./inventory";
 import type { ImportRow } from "@/lib/csv-import";
 
+export const IMPORT_NOTE = "Imported";
+
 export async function importRows(db: DB, ctx: Ctx, rows: ImportRow[]) {
   if (!rows.length) throw new InventoryError("Nothing to import.");
   return db.transaction(async (tx) => {
@@ -29,7 +31,23 @@ export async function importRows(db: DB, ctx: Ctx, rows: ImportRow[]) {
       });
     }
     for (let i = 0; i < values.length; i += 500) {
-      await tx.insert(items).values(values.slice(i, i + 500));
+      const inserted = await tx
+        .insert(items)
+        .values(values.slice(i, i + 500))
+        .returning({ id: items.id, name: items.name, folderId: items.folderId, quantity: items.quantity });
+      // Per-item history entry so every imported item shows where it came from.
+      await tx.insert(activity).values(
+        inserted.map((it) => ({
+          orgId: ctx.orgId,
+          userId: ctx.userId,
+          type: "item.created" as const,
+          itemId: it.id,
+          folderId: it.folderId,
+          itemName: it.name,
+          quantityAfter: it.quantity,
+          note: IMPORT_NOTE,
+        })),
+      );
     }
     await tx.insert(activity).values({
       orgId: ctx.orgId,

@@ -5,21 +5,25 @@ export function cx(...classes: (string | false | null | undefined)[]) {
   return classes.filter(Boolean).join(" ");
 }
 
-type Variant = "primary" | "secondary" | "danger" | "ghost";
+type Variant = "primary" | "secondary" | "danger" | "ghost" | "dangerGhost";
 
 const variants: Record<Variant, string> = {
   primary: "bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-800 shadow-sm",
   secondary: "bg-white text-ink border border-neutral-300 hover:bg-neutral-50 active:bg-neutral-100",
   danger: "bg-white text-red-700 border border-red-200 hover:bg-red-50",
   ghost: "text-neutral-700 hover:bg-neutral-100",
+  dangerGhost: "text-red-700 hover:bg-red-50",
 };
 
-export function buttonClass(variant: Variant = "primary", size: "sm" | "md" | "lg" = "md") {
+type Size = "sm" | "md" | "lg" | "icon";
+
+export function buttonClass(variant: Variant = "primary", size: Size = "md") {
   return cx(
     "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500",
     size === "sm" && "h-8 px-3 text-sm",
     size === "md" && "h-10 px-4 text-sm",
     size === "lg" && "h-12 px-5 text-base",
+    size === "icon" && "h-12 w-12 shrink-0",
     variants[variant],
   );
 }
@@ -29,7 +33,7 @@ export function Button({
   size = "md",
   className,
   ...props
-}: ComponentProps<"button"> & { variant?: Variant; size?: "sm" | "md" | "lg" }) {
+}: ComponentProps<"button"> & { variant?: Variant; size?: Size }) {
   return <button className={cx(buttonClass(variant, size), className)} {...props} />;
 }
 
@@ -38,23 +42,26 @@ export function LinkButton({
   size = "md",
   className,
   ...props
-}: ComponentProps<typeof Link> & { variant?: Variant; size?: "sm" | "md" | "lg" }) {
+}: ComponentProps<typeof Link> & { variant?: Variant; size?: Size }) {
   return <Link className={cx(buttonClass(variant, size), className)} {...props} />;
 }
 
 export const inputClass =
-  "block w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-ink placeholder:text-neutral-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 disabled:bg-neutral-100";
+  "block min-w-0 rounded-lg border border-neutral-300 bg-white px-3 py-2 text-ink placeholder:text-neutral-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 disabled:bg-neutral-100";
+
+// Full width unless the caller sets its own width (Tailwind can't resolve conflicting classes by order).
+const widthOr = (className?: string) => (/(^|\s)(w-|flex-1|sm:w-|md:w-)/.test(className ?? "") ? "" : "w-full");
 
 export function Input({ className, ...props }: ComponentProps<"input">) {
-  return <input className={cx(inputClass, "h-10", className)} {...props} />;
+  return <input className={cx(inputClass, "h-10", widthOr(className), className)} {...props} />;
 }
 
 export function Textarea({ className, ...props }: ComponentProps<"textarea">) {
-  return <textarea className={cx(inputClass, className)} {...props} />;
+  return <textarea className={cx(inputClass, widthOr(className), className)} {...props} />;
 }
 
 export function Select({ className, ...props }: ComponentProps<"select">) {
-  return <select className={cx(inputClass, "h-10", className)} {...props} />;
+  return <select className={cx(inputClass, "h-10", widthOr(className), className)} {...props} />;
 }
 
 export function Field({

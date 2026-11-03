@@ -592,6 +592,8 @@ export async function deletePhoto(db: DB, ctx: Ctx, photoId: string) {
 export async function listActivity(db: DB, ctx: Ctx, opts: { itemId?: string; limit?: number } = {}) {
   const conds: SQL[] = [eq(activity.orgId, ctx.orgId)];
   if (opts.itemId) conds.push(eq(activity.itemId, opts.itemId));
+  // The workspace feed shows one summary line per import instead of one line per imported item.
+  else conds.push(sql`not (${activity.type} = 'item.created' and coalesce(${activity.note}, '') = 'Imported')`);
   return db
     .select({
       id: activity.id,

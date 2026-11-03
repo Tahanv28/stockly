@@ -25,7 +25,9 @@ export function describeActivity(a: A, withItem = true): { text: string; delta?:
   const item = withItem && a.itemName ? ` ${a.itemName}` : "";
   switch (a.type) {
     case "item.created":
-      return { text: `Added${item || " item"} with ${formatQty(a.quantityAfter ?? "0")}` };
+      return {
+        text: `${a.note === "Imported" ? "Imported" : "Added"}${item || " item"} with ${formatQty(a.quantityAfter ?? "0")}`,
+      };
     case "item.quantity": {
       const before = Number(a.quantityBefore ?? 0);
       const after = Number(a.quantityAfter ?? 0);

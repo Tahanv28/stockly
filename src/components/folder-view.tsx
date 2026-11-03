@@ -18,7 +18,7 @@ export function SearchBox({ defaultValue = "", autoFocus = false }: { defaultVal
         type="search"
         defaultValue={defaultValue}
         autoFocus={autoFocus}
-        placeholder="Search name, SKU, barcode, tag… or scan with a USB scanner"
+        placeholder="Search name, SKU, barcode or tag"
         className="h-11 w-full rounded-xl border border-neutral-300 bg-white pl-10 pr-3 placeholder:text-neutral-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
       />
     </form>
@@ -77,7 +77,7 @@ export async function FolderView({ ctx, folderId }: { ctx: Ctx; folderId: string
             <input type="hidden" name="folderId" value={folderId} />
             <ConfirmSubmit
               message={`Delete the folder "${current.name}"? Its items and subfolders will move up one level. Nothing is deleted.`}
-              className={buttonClass("ghost", "sm") + " text-red-700"}
+              className={buttonClass("dangerGhost", "sm")}
             >
               <IconTrash width={16} height={16} /> Delete folder
             </ConfirmSubmit>

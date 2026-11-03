@@ -118,7 +118,7 @@ export function ItemForm({
         </Button>
       </Card>
 
-      <div className="sticky bottom-16 z-10 -mx-4 flex gap-2 border-t border-neutral-200 bg-white/95 px-4 py-3 backdrop-blur md:static md:mx-0 md:border-0 md:bg-transparent md:p-0">
+      <div className="flex gap-2">
         <Button type="submit" disabled={pending} className="flex-1 md:flex-none">
           {pending ? "Saving…" : isEdit ? "Save changes" : "Add item"}
         </Button>
