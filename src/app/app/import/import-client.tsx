@@ -43,10 +43,17 @@ export function ImportClient() {
     [parsed, mapping],
   );
 
+  const itemCount = preview ? preview.rows.filter((r) => !r.folderOnly).length : 0;
+  const folderRowCount = preview ? preview.rows.length - itemCount : 0;
+
   function runImport() {
     if (!parsed || !preview) return;
     setError(null);
-    const folderCount = new Set(preview.rows.map((r) => r.folderPath.join("/").toLowerCase()).filter(Boolean)).size;
+    const folderCount = new Set(
+      preview.rows
+        .map((r) => (r.folderOnly ? [...r.folderPath, r.name] : r.folderPath).join("/").toLowerCase())
+        .filter(Boolean),
+    ).size;
     startTransition(async () => {
       let items = 0;
       const total = parsed.data.length;
@@ -103,8 +110,9 @@ export function ImportClient() {
             <IconUpload width={32} height={32} className="text-neutral-400" />
             <span className="font-medium">Choose a CSV file</span>
             <span className="max-w-sm text-sm text-neutral-500">
-              Export your items from Sortly (or any spreadsheet) as a CSV file and upload it here. Folders, quantities, barcodes,
-              prices, tags, notes and custom fields come across automatically.
+              From Sortly: open Reports → Inventory Summary, clear any filters, and export as <strong>CSV</strong> (if you
+              exported Excel, open it and save as CSV). Folders, quantities, barcodes, prices, tags, notes and custom
+              fields come across automatically. Any other spreadsheet saved as CSV works too.
             </span>
             <input type="file" accept=".csv,text/csv" className="hidden" onChange={(e) => onFile(e.target.files?.[0])} />
           </label>
@@ -150,7 +158,10 @@ export function ImportClient() {
           {preview && (
             <Card className="overflow-hidden">
               <div className="border-b border-neutral-100 px-4 py-3 text-sm">
-                <span className="font-semibold">{preview.rows.length} items ready</span>
+                <span className="font-semibold">
+                  {itemCount} item{itemCount === 1 ? "" : "s"} ready
+                  {folderRowCount > 0 && ` + ${folderRowCount} folder${folderRowCount === 1 ? "" : "s"}`}
+                </span>
                 {preview.errors.length > 0 && (
                   <span className="text-amber-700">
                     {" "}· {preview.errors.length} row{preview.errors.length === 1 ? "" : "s"} will be skipped
@@ -168,7 +179,7 @@ export function ImportClient() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-neutral-100">
-                    {preview.rows.slice(0, 8).map((r) => (
+                    {preview.rows.filter((r) => !r.folderOnly).slice(0, 8).map((r) => (
                       <tr key={r.line}>
                         <td className="px-4 py-2">{r.name}</td>
                         <td className="px-4 py-2 text-neutral-500">{r.folderPath.join(" / ") || "—"}</td>
@@ -201,7 +212,7 @@ export function ImportClient() {
               ? progress && progress.total > IMPORT_BATCH_ROWS
                 ? `Importing… ${Math.round((progress.done / progress.total) * 100)}%`
                 : "Importing…"
-              : `Import ${preview?.rows.length ?? 0} items`}
+              : `Import ${itemCount} items`}
           </Button>
           {!mapping.includes("name") && (
             <p className="text-center text-sm text-amber-700">Pick which column is the item Name.</p>

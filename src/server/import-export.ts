@@ -14,6 +14,10 @@ export async function importRows(db: DB, ctx: Ctx, rows: ImportRow[]) {
     const folderCache = new Map<string, string>();
     const values: (typeof items.$inferInsert)[] = [];
     for (const r of rows) {
+      if (r.folderOnly) {
+        await ensureFolderPath(tx, ctx, [...r.folderPath, r.name], folderCache);
+        continue;
+      }
       const folderId = r.folderPath.length ? await ensureFolderPath(tx, ctx, r.folderPath, folderCache) : null;
       values.push({
         orgId: ctx.orgId,

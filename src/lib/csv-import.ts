@@ -16,6 +16,7 @@ export const TARGETS = {
   notes: "Notes",
   folderPath: "Folder path",
   folderLevel: "Folder level (Sortly-style)",
+  entryType: "Entry type (Item / Folder)",
   custom: "Custom field",
   ignore: "Don't import",
 } as const;
@@ -23,6 +24,7 @@ export const TARGETS = {
 export type Target = keyof typeof TARGETS;
 
 const ALIASES: Record<Exclude<Target, "custom" | "ignore" | "folderLevel">, string[]> = {
+  entryType: ["entry type"],
   name: ["name", "entry name", "item name", "item", "title", "product", "product name", "description name"],
   quantity: ["quantity", "qty", "stock", "count", "on hand", "in stock", "amount", "current quantity"],
   unit: ["unit", "units", "uom", "unit of measure"],
@@ -35,7 +37,7 @@ const ALIASES: Record<Exclude<Target, "custom" | "ignore" | "folderLevel">, stri
   barcode: ["barcode", "barcode/qr1-data", "barcode/qr1 data", "upc", "ean", "gtin", "qr", "qr code", "barcode data"],
   tags: ["tags", "tag", "labels", "categories", "category"],
   notes: ["notes", "note", "description", "comments", "comment"],
-  folderPath: ["folder", "folder path", "location", "path", "folder name", "storage location"],
+  folderPath: ["folder", "folder path", "location", "path", "folder name", "storage location", "folders"],
 };
 
 // Columns from Sortly exports that are internal or derived and shouldn't become fields.
@@ -48,7 +50,12 @@ const normalize = (h: string) => h.trim().toLowerCase().replace(/\s+/g, " ");
 
 function isFolderLevel(h: string) {
   const n = normalize(h);
-  return n === "main folder" || /^subfolder[- ]?level ?\d+$/.test(n) || /^folder ?level ?\d+$/.test(n);
+  return (
+    n === "main folder" ||
+    n === "primary folder" ||
+    /^subfolder[- ]?level ?\d+$/.test(n) ||
+    /^folder ?level ?\d+$/.test(n)
+  );
 }
 
 export function guessMapping(headers: string[]): Target[] {
@@ -64,14 +71,17 @@ export function guessMapping(headers: string[]): Target[] {
         return target;
       }
     }
-    // Sortly's second barcode column, etc.
+    // Sortly's second barcode column, photo URL columns, etc.
     if (n.startsWith("barcode/qr")) return "ignore";
+    if (/^(photo|image|picture)s? ?\d*( url)?$/.test(n)) return "ignore";
     return "custom";
   });
 }
 
 export type ImportRow = {
   line: number;
+  /** True for Sortly "Entry Type = Folder" rows: create the folder, not an item. */
+  folderOnly?: boolean;
   name: string;
   quantity: string | null;
   unit: string | null;
@@ -133,6 +143,7 @@ export function buildRows(
       errors.push({ line, message: "Missing name — row skipped." });
       return;
     }
+    const isFolder = mapping.includes("entryType") && /^folders?$/i.test(get("entryType"));
     try {
       const folderPath = mapping.includes("folderPath")
         ? splitPath(get("folderPath"))
@@ -144,6 +155,13 @@ export function buildRows(
           if (v && headers[i]?.trim()) customFields[headers[i].trim()] = v;
         }
       });
+      if (isFolder) {
+        rows.push({
+          line, folderOnly: true, name: name.slice(0, 200), quantity: null, unit: null, minQuantity: null,
+          price: null, sku: null, barcode: null, tags: [], notes: null, folderPath, customFields: {},
+        });
+        return;
+      }
       const quantity = parseDecimal(get("quantity"));
       if (quantity !== null && Number(quantity) < 0) throw new Error("Quantity can't be negative");
       rows.push({
@@ -175,7 +193,7 @@ export function buildRows(
 
 function levelOrder(h: string) {
   const n = normalize(h);
-  if (n === "main folder") return 0;
+  if (n === "main folder" || n === "primary folder") return 0;
   const m = n.match(/(\d+)/);
   return m ? Number(m[1]) + 1 : 99;
 }

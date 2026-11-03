@@ -25,7 +25,37 @@ describe("parseDecimal", () => {
   });
 });
 
+// Shaped like Sortly's own bulk-import template / newer exports.
+const SORTLY_TEMPLATE_HEADERS = [
+  "Entry Name", "Entry Type", "Quantity", "Min Level", "Price", "Notes", "Tags", "Primary Folder",
+  "Subfolder-level1", "Subfolder-level2", "Subfolder-level3", "Subfolder-level4", "Photo1", "Photo2",
+  "Barcode/QR1-Data", "Barcode/QR1-Type", "Barcode/QR2-Data", "Barcode/QR2-Type", "Size",
+];
+
 describe("csv import", () => {
+  it("auto-maps Sortly's template columns, creates folder rows and ignores photo URLs", async () => {
+    const m = guessMapping(SORTLY_TEMPLATE_HEADERS);
+    expect(m).toEqual([
+      "name", "entryType", "quantity", "minQuantity", "price", "notes", "tags", "folderLevel",
+      "folderLevel", "folderLevel", "folderLevel", "folderLevel", "ignore", "ignore",
+      "barcode", "ignore", "ignore", "ignore", "custom",
+    ]);
+    const row = (o: Partial<Record<string, string>>) => SORTLY_TEMPLATE_HEADERS.map((h) => o[h] ?? "");
+    const data = [
+      row({ "Entry Name": "Storage room", "Entry Type": "Folder", "Primary Folder": "HQ" }),
+      row({ "Entry Name": "Printer paper", "Entry Type": "Item", Quantity: "12", "Primary Folder": "HQ", "Subfolder-level1": "Storage room", Photo1: "https://img.example/1.jpg", Size: "A4" }),
+    ];
+    const res = buildRows(SORTLY_TEMPLATE_HEADERS, data, m);
+    expect(res.errors).toEqual([]);
+    expect(res.rows[0]).toMatchObject({ folderOnly: true, name: "Storage room", folderPath: ["HQ"] });
+    expect(res.rows[1]).toMatchObject({ name: "Printer paper", quantity: "12", folderPath: ["HQ", "Storage room"], customFields: { Size: "A4" } });
+
+    const ctx = await makeWorkspace();
+    expect(await importRows(db, ctx, res.rows)).toEqual({ items: 1, folders: 2 });
+    const paper = (await listItems(db, ctx, { search: "Printer paper" }))[0];
+    expect((await getFolderPath(db, ctx, paper.folderId)).map((p) => p.name)).toEqual(["HQ", "Storage room"]);
+  });
+
   it("auto-maps a Sortly export", () => {
     const m = guessMapping(SORTLY_HEADERS);
     expect(m).toEqual([
