@@ -1,9 +1,9 @@
 import type { NextConfig } from "next";
 
+// Stockly is an authenticated app where almost every page is per-user and
+// dynamic, so we use the classic request-time rendering model instead of
+// Cache Components / Partial Prefetching.
 const nextConfig: NextConfig = {
-  /* config options here */
-  cacheComponents: true,
-  partialPrefetching: true,
   turbopack: {
     rules: {
       "*.css": {
@@ -12,6 +12,13 @@ const nextConfig: NextConfig = {
       },
     },
   },
+  experimental: {
+    serverActions: {
+      // Photos are resized in the browser before upload, but leave headroom.
+      bodySizeLimit: "10mb",
+    },
+  },
+  poweredByHeader: false,
 };
 
 export default nextConfig;
