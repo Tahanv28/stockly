@@ -215,3 +215,10 @@ export async function removeMember(db: DB, ctx: Ctx, userId: string) {
     .delete(memberships)
     .where(and(eq(memberships.orgId, ctx.orgId), eq(memberships.userId, userId)));
 }
+
+export async function renameOrg(db: DB, ctx: Ctx, nameInput: string) {
+  if (!canManageTeam(ctx.role)) throw new AuthError("Only owners and admins can rename the workspace.");
+  const name = nameInput.trim();
+  if (!name) throw new AuthError("Enter a name.");
+  await db.update(organizations).set({ name: name.slice(0, 100) }).where(eq(organizations.id, ctx.orgId));
+}
