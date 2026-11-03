@@ -46,8 +46,8 @@ node e2e/smoke.mjs              # end-to-end browser test against a running app
    - `DATABASE_URL` — Supabase connection string
    - `APP_URL` — your public URL, e.g. `https://app.yourdomain.com`
    - `S3_BUCKET=photos`, `S3_ENDPOINT` (Supabase S3 endpoint), `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`
-3. Run migrations once against the production database: `DATABASE_URL=... npm run db:migrate`
-4. Deploy. Commercial use needs Vercel Pro.
+3. Deploy. Vercel runs `vercel-build`, which applies database migrations before building,
+   so the database is always up to date. Commercial use needs Vercel Pro.
 
 Without `S3_BUCKET`, photos are stored on local disk in `.data/uploads` — fine for development,
 not for serverless hosting.
