@@ -128,7 +128,7 @@ await page.getByText("2 items ready").waitFor();
 await shot("import-preview");
 await page.getByRole("button", { name: "Import 2 items" }).click();
 await page.getByText("Import complete").waitFor();
-assert(await page.getByText("Added 2 items in 2 folders").isVisible(), "import created items and folders");
+assert(await page.getByText("Added 2 items in 1 folder").isVisible(), "import created items and folders");
 await page.goto(`${BASE}/app/low-stock`);
 assert(await page.getByText("Safety gloves").isVisible(), "imported low-stock item flagged");
 

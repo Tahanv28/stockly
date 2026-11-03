@@ -92,6 +92,8 @@ export type BuildResult = {
 };
 
 export const MAX_IMPORT_ROWS = 5000;
+/** Rows sent per server request. Keeps each request well under hosting body-size limits (~4.5 MB on Vercel). */
+export const IMPORT_BATCH_ROWS = 400;
 
 function splitPath(v: string) {
   return v
@@ -101,7 +103,13 @@ function splitPath(v: string) {
 }
 
 /** Turns raw CSV cells into validated item rows. `data` excludes the header row. */
-export function buildRows(headers: string[], data: string[][], mapping: Target[]): BuildResult {
+export function buildRows(
+  headers: string[],
+  data: string[][],
+  mapping: Target[],
+  /** Row index of data[0] within the whole file (for correct line numbers when importing in batches). */
+  rowOffset = 0,
+): BuildResult {
   const rows: ImportRow[] = [];
   const errors: { line: number; message: string }[] = [];
   let skipped = 0;
@@ -111,7 +119,7 @@ export function buildRows(headers: string[], data: string[][], mapping: Target[]
     .sort((a, b) => levelOrder(headers[a]) - levelOrder(headers[b]));
 
   data.slice(0, MAX_IMPORT_ROWS).forEach((cells, idx) => {
-    const line = idx + 2; // +1 for header, +1 for 1-based line numbers
+    const line = rowOffset + idx + 2; // +1 for header, +1 for 1-based line numbers
     const get = (t: Target) => {
       const i = mapping.indexOf(t);
       return i >= 0 ? (cells[i] ?? "").trim() : "";
@@ -159,7 +167,7 @@ export function buildRows(headers: string[], data: string[][], mapping: Target[]
       errors.push({ line, message: `${(e as Error).message} — row skipped.` });
     }
   });
-  if (data.length > MAX_IMPORT_ROWS) {
+  if (rowOffset === 0 && data.length > MAX_IMPORT_ROWS) {
     errors.push({ line: MAX_IMPORT_ROWS + 2, message: `Only the first ${MAX_IMPORT_ROWS} rows are imported at once.` });
   }
   return { rows, errors, skipped };

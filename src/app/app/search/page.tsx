@@ -35,7 +35,12 @@ export default async function SearchPage({ searchParams }: PageProps<"/app/searc
       </div>
       {q &&
         (results.length ? (
-          <ItemList items={results} folders={folders} folderNames={folderNames} />
+          <>
+            <ItemList items={results} folders={folders} folderNames={folderNames} />
+            {results.length >= 200 && (
+              <p className="mt-3 text-center text-sm text-neutral-500">Showing the first 200 matches. Try a more specific search.</p>
+            )}
+          </>
         ) : (
           <EmptyState
             icon={<IconSearch width={32} height={32} />}

@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { requireSession, toCtx } from "@/lib/session";
 import { getFolder } from "@/server/inventory";
 import { FolderView } from "@/components/folder-view";
+import { pageFrom } from "@/lib/paging";
 
 export async function generateMetadata({ params }: PageProps<"/app/folders/[id]">): Promise<Metadata> {
   const session = await requireSession();
@@ -26,7 +27,7 @@ export default async function FolderPage({ params, searchParams }: PageProps<"/a
           Item moved to the trash. <Link href="/app/trash" className="font-medium underline">Undo in Trash</Link>
         </p>
       )}
-      <FolderView ctx={ctx} folderId={id} />
+      <FolderView ctx={ctx} folderId={id} page={pageFrom(sp.page)} />
     </>
   );
 }

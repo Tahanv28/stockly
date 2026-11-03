@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { requireSession, toCtx } from "@/lib/session";
 import { getStats } from "@/server/inventory";
 import { FolderView } from "@/components/folder-view";
+import { pageFrom } from "@/lib/paging";
 import { formatMoney, formatQty } from "@/lib/numbers";
 import { Card } from "@/components/ui";
 
@@ -47,7 +48,7 @@ export default async function AppHome({ searchParams }: PageProps<"/app">) {
         </div>
       )}
 
-      <FolderView ctx={ctx} folderId={null} />
+      <FolderView ctx={ctx} folderId={null} page={pageFrom(sp.page)} />
     </div>
   );
 }

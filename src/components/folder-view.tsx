@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { db } from "@/db";
 import type { Ctx } from "@/server/auth";
-import { getFolderPath, listAllFolderPaths, listFolders, listItems } from "@/server/inventory";
+import { countItems, getFolderPath, listAllFolderPaths, listFolders, listItems } from "@/server/inventory";
 import { formatQty } from "@/lib/numbers";
 import { Card, EmptyState, LinkButton, buttonClass } from "./ui";
 import { IconBox, IconChevronRight, IconFolder, IconPlus, IconPrinter, IconSearch, IconTrash } from "./icons";
@@ -25,15 +25,20 @@ export function SearchBox({ defaultValue = "", autoFocus = false }: { defaultVal
   );
 }
 
-export async function FolderView({ ctx, folderId }: { ctx: Ctx; folderId: string | null }) {
-  const [path, subfolders, items, allFolders] = await Promise.all([
+export const PAGE_SIZE = 200;
+
+export async function FolderView({ ctx, folderId, page = 1 }: { ctx: Ctx; folderId: string | null; page?: number }) {
+  const [path, subfolders, items, allFolders, totalItems] = await Promise.all([
     getFolderPath(db, ctx, folderId),
     listFolders(db, ctx, folderId),
-    listItems(db, ctx, { folderId }),
+    listItems(db, ctx, { folderId, limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE }),
     listAllFolderPaths(db, ctx),
+    countItems(db, ctx, { folderId }),
   ]);
+  const pages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+  const base = folderId ? `/app/folders/${folderId}` : "/app";
   const current = path[path.length - 1];
-  const isEmpty = subfolders.length === 0 && items.length === 0;
+  const isEmpty = subfolders.length === 0 && totalItems === 0;
 
   return (
     <div>
@@ -68,7 +73,7 @@ export async function FolderView({ ctx, folderId }: { ctx: Ctx; folderId: string
       {folderId && current && (
         <div className="mb-4 flex flex-wrap items-center gap-1">
           <RenameFolderButton folderId={folderId} name={current.name} />
-          {items.length > 0 && (
+          {totalItems > 0 && (
             <Link href={`/app/labels?folder=${folderId}`} className={buttonClass("ghost", "sm")}>
               <IconPrinter width={16} height={16} /> Print labels
             </Link>
@@ -140,10 +145,33 @@ export async function FolderView({ ctx, folderId }: { ctx: Ctx; folderId: string
               </div>
             </section>
           )}
-          {items.length > 0 && (
+          {totalItems > 0 && (
             <section>
-              <h2 className="mb-2 text-sm font-medium text-neutral-500">Items</h2>
+              <h2 className="mb-2 text-sm font-medium text-neutral-500">
+                Items{pages > 1 && ` · ${totalItems.toLocaleString("en-US")} total`}
+              </h2>
               <ItemList items={items} folders={allFolders} />
+              {pages > 1 && (
+                <nav className="mt-4 flex items-center justify-between text-sm" aria-label="Pages">
+                  {page > 1 ? (
+                    <Link href={`${base}?page=${page - 1}`} className={buttonClass("secondary", "sm")}>
+                      ← Previous
+                    </Link>
+                  ) : (
+                    <span />
+                  )}
+                  <span className="text-neutral-500">
+                    Page {page} of {pages}
+                  </span>
+                  {page < pages ? (
+                    <Link href={`${base}?page=${page + 1}`} className={buttonClass("secondary", "sm")}>
+                      Next →
+                    </Link>
+                  ) : (
+                    <span />
+                  )}
+                </nav>
+              )}
             </section>
           )}
         </div>

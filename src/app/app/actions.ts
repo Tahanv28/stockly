@@ -69,7 +69,13 @@ export async function renameFolderAction(_prev: ActionState, fd: FormData): Prom
 
 export async function deleteFolderAction(fd: FormData) {
   const { ctx } = await requireActionCtx();
-  const parentId = await deleteFolder(db, ctx, str(fd, "folderId"));
+  let parentId: string | null = null;
+  try {
+    parentId = await deleteFolder(db, ctx, str(fd, "folderId"));
+  } catch (e) {
+    // Already deleted (e.g. by a teammate or a double tap): just go back to the list.
+    if (!(e instanceof InventoryError)) throw e;
+  }
   refreshApp();
   redirect(parentId ? `/app/folders/${parentId}` : "/app");
 }
@@ -148,6 +154,7 @@ export async function deleteItemAction(fd: FormData) {
   const { ctx } = await requireActionCtx();
   const id = str(fd, "itemId");
   const item = await getItem(db, ctx, id);
+  if (!item) redirect("/app");
   await deleteItem(db, ctx, id);
   refreshApp();
   redirect(item?.folderId ? `/app/folders/${item.folderId}?deleted=1` : "/app?deleted=1");
@@ -155,7 +162,11 @@ export async function deleteItemAction(fd: FormData) {
 
 export async function restoreItemAction(fd: FormData) {
   const { ctx } = await requireActionCtx();
-  await restoreItem(db, ctx, str(fd, "itemId"));
+  try {
+    await restoreItem(db, ctx, str(fd, "itemId"));
+  } catch (e) {
+    if (!(e instanceof InventoryError)) throw e;
+  }
   refreshApp();
 }
 

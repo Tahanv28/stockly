@@ -2,7 +2,7 @@
 
 import Papa from "papaparse";
 import { useMemo, useState, useTransition } from "react";
-import { buildRows, guessMapping, MAX_IMPORT_ROWS, TARGETS, type Target } from "@/lib/csv-import";
+import { buildRows, guessMapping, IMPORT_BATCH_ROWS, MAX_IMPORT_ROWS, TARGETS, type Target } from "@/lib/csv-import";
 import { Button, Card, FormError, LinkButton, Select } from "@/components/ui";
 import { IconUpload } from "@/components/icons";
 import { formatQty } from "@/lib/numbers";
@@ -16,6 +16,7 @@ export function ImportClient() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ items: number; folders: number; errors: number } | null>(null);
   const [pending, startTransition] = useTransition();
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
 
   function onFile(file: File | undefined) {
     if (!file) return;
@@ -43,15 +44,34 @@ export function ImportClient() {
   );
 
   function runImport() {
-    if (!parsed) return;
+    if (!parsed || !preview) return;
     setError(null);
+    const folderCount = new Set(preview.rows.map((r) => r.folderPath.join("/").toLowerCase()).filter(Boolean)).size;
     startTransition(async () => {
-      const res = await importAction({ headers: parsed.headers, data: parsed.data, mapping });
-      if ("error" in res && res.error) setError(res.error);
-      else if ("ok" in res) {
-        setResult({ items: res.items, folders: res.folders, errors: res.errors });
-        setParsed(null);
+      let items = 0;
+      const total = parsed.data.length;
+      for (let offset = 0; offset < total; offset += IMPORT_BATCH_ROWS) {
+        setProgress({ done: offset, total });
+        const res = await importAction({
+          headers: parsed.headers,
+          data: parsed.data.slice(offset, offset + IMPORT_BATCH_ROWS),
+          mapping,
+          rowOffset: offset,
+        });
+        if ("error" in res && res.error) {
+          setProgress(null);
+          setError(
+            items > 0
+              ? `${res.error} The first ${items} items were imported; the rest were not. Fix the file and import the remaining rows.`
+              : res.error,
+          );
+          return;
+        }
+        if ("ok" in res) items += res.items ?? 0;
       }
+      setProgress(null);
+      setResult({ items, folders: folderCount, errors: preview.errors.length });
+      setParsed(null);
     });
   }
 
@@ -177,7 +197,11 @@ export function ImportClient() {
             disabled={pending || !preview?.rows.length || !mapping.includes("name")}
             onClick={runImport}
           >
-            {pending ? "Importing…" : `Import ${preview?.rows.length ?? 0} items`}
+            {pending
+              ? progress && progress.total > IMPORT_BATCH_ROWS
+                ? `Importing… ${Math.round((progress.done / progress.total) * 100)}%`
+                : "Importing…"
+              : `Import ${preview?.rows.length ?? 0} items`}
           </Button>
           {!mapping.includes("name") && (
             <p className="text-center text-sm text-amber-700">Pick which column is the item Name.</p>

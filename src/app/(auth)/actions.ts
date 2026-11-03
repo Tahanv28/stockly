@@ -15,6 +15,7 @@ import {
   switchOrg,
 } from "@/server/auth";
 import { rateLimit, resetRateLimit } from "@/server/rate-limit";
+import { safeNext } from "@/lib/redirects";
 import { clearSessionCookie, getSessionToken, requireActionCtx, setSessionCookie } from "@/lib/session";
 
 export type FormState = { error?: string; values?: Record<string, string> } | null;
@@ -24,11 +25,6 @@ async function clientIp() {
   return h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || "unknown";
 }
 
-function safeNext(next: FormDataEntryValue | null) {
-  const n = typeof next === "string" ? next : "";
-  // Only allow same-site relative paths.
-  return n.startsWith("/") && !n.startsWith("//") ? n : "/app";
-}
 
 const signupSchema = z.object({
   name: z.string().trim().min(1, "Enter your name.").max(100),

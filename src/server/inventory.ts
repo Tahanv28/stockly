@@ -466,23 +466,9 @@ export type ItemListRow = {
 export async function listItems(
   db: DB,
   ctx: Ctx,
-  opts: { folderId?: string | null; search?: string; lowStock?: boolean; trash?: boolean; limit?: number },
+  opts: ListOpts & { limit?: number; offset?: number },
 ): Promise<ItemListRow[]> {
-  const conds: SQL[] = [eq(items.orgId, ctx.orgId)];
-  conds.push(opts.trash ? isNotNull(items.deletedAt) : isNull(items.deletedAt));
-  const q = opts.search?.trim();
-  if (q) {
-    const pattern = `%${escapeLike(q)}%`;
-    conds.push(sql`(
-      ${items.name} ilike ${pattern} or ${items.sku} ilike ${pattern} or ${items.barcode} ilike ${pattern}
-      or ${items.notes} ilike ${pattern} or array_to_string(${items.tags}, ' ') ilike ${pattern}
-    )`);
-  } else if (opts.folderId !== undefined && !opts.lowStock && !opts.trash) {
-    conds.push(opts.folderId ? eq(items.folderId, opts.folderId) : isNull(items.folderId));
-  }
-  if (opts.lowStock) {
-    conds.push(sql`${items.minQuantity} is not null and ${items.quantity} <= ${items.minQuantity}`);
-  }
+  const conds = itemConds(ctx, opts);
   return db
     .select({
       id: items.id,
@@ -502,8 +488,38 @@ export async function listItems(
     })
     .from(items)
     .where(and(...conds))
-    .orderBy(opts.trash ? desc(items.deletedAt) : sql`lower(${items.name})`)
-    .limit(opts.limit ?? 500);
+    .orderBy(opts.trash ? desc(items.deletedAt) : sql`lower(${items.name})`, items.id)
+    .limit(opts.limit ?? 500)
+    .offset(opts.offset ?? 0);
+}
+
+export async function countItems(db: DB, ctx: Ctx, opts: ListOpts) {
+  const [row] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(items)
+    .where(and(...itemConds(ctx, opts)));
+  return Number(row?.n ?? 0);
+}
+
+type ListOpts = { folderId?: string | null; search?: string; lowStock?: boolean; trash?: boolean };
+
+function itemConds(ctx: Ctx, opts: ListOpts): SQL[] {
+  const conds: SQL[] = [eq(items.orgId, ctx.orgId)];
+  conds.push(opts.trash ? isNotNull(items.deletedAt) : isNull(items.deletedAt));
+  const q = opts.search?.trim();
+  if (q) {
+    const pattern = `%${escapeLike(q)}%`;
+    conds.push(sql`(
+      ${items.name} ilike ${pattern} or ${items.sku} ilike ${pattern} or ${items.barcode} ilike ${pattern}
+      or ${items.notes} ilike ${pattern} or array_to_string(${items.tags}, ' ') ilike ${pattern}
+    )`);
+  } else if (opts.folderId !== undefined && !opts.lowStock && !opts.trash) {
+    conds.push(opts.folderId ? eq(items.folderId, opts.folderId) : isNull(items.folderId));
+  }
+  if (opts.lowStock) {
+    conds.push(sql`${items.minQuantity} is not null and ${items.quantity} <= ${items.minQuantity}`);
+  }
+  return conds;
 }
 
 /** Looks up an item by scanned/typed code: barcode, SKU, or Stockly item id. */
